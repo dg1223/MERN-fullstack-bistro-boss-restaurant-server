@@ -13,10 +13,11 @@ app.use(express.json());
 // JWT middleware
 const verifyJWT = (req, res, next) => {
   const authorization = req.headers.authorization;
+  console.log("authorization: ", authorization);
   if (!authorization) {
     return res
       .status(401)
-      .send({ error: true, message: "Unauthorized access" });
+      .send({ error: true, message: "Unauthorized access: !authorization" });
   }
 
   // bearer token
@@ -26,7 +27,7 @@ const verifyJWT = (req, res, next) => {
     if (err) {
       return res
         .status(401)
-        .send({ error: true, message: "Unauthorized access" });
+        .send({ error: true, message: "Unauthorized access: err" });
     }
     req.decoded = decoded;
     next();
@@ -113,6 +114,7 @@ async function run() {
     // Cart collection APIs
     app.get("/carts", verifyJWT, async (req, res) => {
       const email = req.query.email;
+      console.log("email: ", email);
       if (!email) {
         res.send([]);
       }
@@ -120,6 +122,7 @@ async function run() {
       // if someone is trying to access API using someone
       // else's email, forbid access to API
       const decodedEmail = req.decoded.email;
+      console.log("decoded email: ", decodedEmail);
       if (email !== decodedEmail) {
         return res
           .status(403)
