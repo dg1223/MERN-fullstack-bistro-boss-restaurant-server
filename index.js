@@ -86,6 +86,28 @@ async function run() {
       res.send(result);
     });
 
+    // check if user is an admin
+    /**
+     * Security layers:
+     * First layer: verifyJWT
+     * Second layer: check if email is the same
+     * Third layer: cehck if admin
+     */
+    app.get("/users/admin/:email", verifyJWT, async (req, res) => {
+      const email = req.params.email; // params is on the line above
+
+      // second layer of security
+      if (req.decoded.email !== email) {
+        res.send({ admin: false });
+      }
+
+      // first layer of security
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      const result = { admin: user?.role === "admin" };
+      res.send(result);
+    });
+
     // update a user's role to admin
     app.patch("/users/admin/:id", async (req, res) => {
       const id = req.params.id;
