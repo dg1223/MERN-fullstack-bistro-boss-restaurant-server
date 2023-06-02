@@ -10,7 +10,7 @@ const port = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// JWT middleware
+// JWT middleware (to be reused to secure authentication)
 const verifyJWT = (req, res, next) => {
   const authorization = req.headers.authorization;
   console.log("authorization: ", authorization);
@@ -29,7 +29,9 @@ const verifyJWT = (req, res, next) => {
         .status(401)
         .send({ error: true, message: "Unauthorized access: err" });
     }
+    // decoded: payload from jwt.sign(user, ...) (user information)
     req.decoded = decoded;
+    // needs to be added to ensure that next middleware is called
     next();
   });
 };
@@ -66,6 +68,7 @@ async function run() {
 
     // Verify admin only after being connected to database
     // Warning: use verifyJWT before using verifyAdmin
+    // To be reused to secure admin authorization
     const verifyAdmin = async (req, res, next) => {
       const email = req.decoded.email;
       const query = { email: email };
@@ -149,11 +152,11 @@ async function run() {
       res.send(result);
     });
 
-    app.post('/menu', asunc (req, res) => {
-      const newItem = req.body
-      const result = await menuCollection.insertOne(newItem)
-      res.send(result)
-    })
+    app.post("/menu", verifyJWT, verifyAdmin, async (req, res) => {
+      const newItem = req.body;
+      const result = await menuCollection.insertOne(newItem);
+      res.send(result);
+    });
 
     // reviews related API
     app.get("/reviews", async (req, res) => {
