@@ -13,7 +13,7 @@ app.use(express.json());
 // JWT middleware (to be reused to secure authentication)
 const verifyJWT = (req, res, next) => {
   const authorization = req.headers.authorization;
-  console.log("authorization: ", authorization);
+  // console.log("authorization: ", authorization);
   if (!authorization) {
     return res
       .status(401)
@@ -97,11 +97,11 @@ async function run() {
 
     app.post("/users", async (req, res) => {
       const user = req.body;
-      console.log(user);
+      // console.log(user);
       // if user is found, skip social login
       const query = { email: user.email };
       const existingUser = await userCollection.findOne(query);
-      console.log("existing user: ", existingUser);
+      // console.log("existing user: ", existingUser);
       if (existingUser) {
         return res.send({ message: "User already exists" });
       }
@@ -158,7 +158,18 @@ async function run() {
       res.send(result);
     });
 
-    // reviews related API
+    // Items that were manually added to the database won't get deleted
+    // because their _id are not of ObjectId type.
+    // When items are added to MongoDB via API, it automatically adds an
+    // _id of type ObjectId to each item.
+    app.delete("/menu/:id", verifyJWT, verifyAdmin, async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await menuCollection.deleteOne(query);
+      res.send(result);
+    });
+
+    // reviews related APIs
     app.get("/reviews", async (req, res) => {
       const result = await reviewCollection.find().toArray();
       res.send(result);
@@ -167,7 +178,7 @@ async function run() {
     // Cart collection APIs
     app.get("/carts", verifyJWT, async (req, res) => {
       const email = req.query.email;
-      console.log("email: ", email);
+      // console.log("email: ", email);
       if (!email) {
         res.send([]);
       }
@@ -175,7 +186,7 @@ async function run() {
       // if someone is trying to access API using someone
       // else's email, forbid access to API
       const decodedEmail = req.decoded.email;
-      console.log("decoded email: ", decodedEmail);
+      // console.log("decoded email: ", decodedEmail);
       if (email !== decodedEmail) {
         return res
           .status(403)
