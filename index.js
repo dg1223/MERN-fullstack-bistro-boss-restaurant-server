@@ -64,8 +64,30 @@ async function run() {
       res.send({ token });
     });
 
+    // Verify admin only after being connected to database
+    // Warning: use verifyJWT before using verifyAdmin
+    const verifyAdmin = async (req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      if (user?.role !== "admin") {
+        return res
+          .status(403)
+          .send({ error: true, message: "Forbidden access" });
+      }
+      next();
+    };
+
+    /**
+     * How to secure admin privileges
+     * 0. Do not show secure links to those who should not
+     *    see the links
+     * 1. use JWT: verifyJWT
+     * 2. use verifyAdmin middleware
+     */
+
     // users related API
-    app.get("/users", async (req, res) => {
+    app.get("/users", verifyJWT, verifyAdmin, async (req, res) => {
       const result = await userCollection.find().toArray();
       res.send(result);
     });
