@@ -216,7 +216,9 @@ async function run() {
     // payment related APIs
     app.post("/create-payment-intent", verifyJWT, async (req, res) => {
       const { price } = req.body;
-      const amount = parseFloat(price * 100);
+      // if it's not converted to an integer, javascript will sometimes
+      // add .00000000...1 to the number and cause error
+      const amount = parseInt(price * 100);
       // console.log(amount);
       const paymentIntent = await stripe.paymentIntents.create({
         amount: amount,
