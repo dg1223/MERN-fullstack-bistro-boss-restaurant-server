@@ -273,7 +273,7 @@ async function run() {
      * 7. for each category use reduce to get the total amount spent
      * on this category.
      */
-    app.get("/order-stats", async (req, res) => {
+    app.get("/order-stats", verifyJWT, verifyAdmin, async (req, res) => {
       const pipeline = [
         {
           $lookup: {
