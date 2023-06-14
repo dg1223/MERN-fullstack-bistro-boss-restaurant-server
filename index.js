@@ -3,6 +3,7 @@ const app = express();
 const cors = require("cors");
 require("dotenv").config();
 const jwt = require("jsonwebtoken");
+const nodemailer = require("nodemailer");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const port = process.env.PORT || 5000;
 const stripe = require("stripe")(process.env.PAYMENT_SECRET_KEY);
@@ -10,6 +11,39 @@ const stripe = require("stripe")(process.env.PAYMENT_SECRET_KEY);
 //middleware
 app.use(cors());
 app.use(express.json());
+
+let transporter = nodemailer.createTransport({
+  host: "smtp.sendgrid.net",
+  port: 587,
+  auth: {
+    user: "apikey",
+    pass: process.env.SENDGRID_API_KEY,
+  },
+});
+
+// send payment confirmation email
+const sendPaymentConfirmationEmail = (payment) => {
+  transporter.sendMail(
+    {
+      from: "noreply@sephora.ca", // verified sender email
+      to: payment.email, // recipient email
+      subject: "Your order is confirmed", // Subject line
+      text: "Your order for La Roche-Posay Effaclar Cleansing Gel 400ml is confirmed. Thanks for being a Sephora customer.", // plain text body
+      html: `
+    <div>
+    <h2>Payment confirmed</h>
+    <div/>
+    `, // html body
+    },
+    function (error, info) {
+      if (error) {
+        console.log(error);
+      } else {
+        console.log("Email sent: " + info.response);
+      }
+    }
+  );
+};
 
 // JWT middleware (to be reused to secure authentication)
 const verifyJWT = (req, res, next) => {
@@ -118,7 +152,7 @@ async function run() {
      * Security layers:
      * First layer: verifyJWT
      * Second layer: check if email is the same
-     * Third layer: cehck if admin
+     * Third layer: check if admin
      */
     app.get("/users/admin/:email", verifyJWT, async (req, res) => {
       const email = req.params.email; // params is on the line above
@@ -239,6 +273,9 @@ async function run() {
         _id: { $in: payment.cartItems.map((id) => new ObjectId(id)) },
       };
       const deleteResult = await cartCollection.deleteMany(query);
+
+      // send an email confirming payment
+      sendPaymentConfirmationEmail(payment);
 
       res.send({ insertResult, deleteResult });
     });
